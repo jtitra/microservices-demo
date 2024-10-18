@@ -1,0 +1,8 @@
+# Terraform
+**/.terraform
+**.tfvars
+**.terraform*
+**.tfstate*
+
+# Scratch space
+**/testing/
