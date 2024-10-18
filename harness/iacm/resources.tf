@@ -15,8 +15,8 @@ resource "google_container_cluster" "gke_cluster" {
   remove_default_node_pool = true
   initial_node_count       = 1
 
-  network    = "default"
-  subnetwork = "default"
+  network    = "sandbox-testing"
+  subnetwork = "sandbox-testing"
 
   workload_identity_config {
     workload_pool = "${var.gcp_project_id}.svc.id.goog"
