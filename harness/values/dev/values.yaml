@@ -1,0 +1,3 @@
+createNamespace: true
+namespace: <+infra.namespace>
+image: <+artifact.image>
