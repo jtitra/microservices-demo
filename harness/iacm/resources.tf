@@ -83,7 +83,7 @@ resource "harness_platform_connector_kubernetes" "gke_k8s" {
   project_id = var.project_id
 
   client_key_cert {
-    master_url           = google_container_cluster.gke_cluster.endpoint
+    master_url           = "https://${google_container_cluster.gke_cluster.endpoint}"
     client_cert_ref      = harness_platform_secret_text.client_cert.id
     client_key_ref       = harness_platform_secret_text.client_key.id
     client_key_algorithm = "RSA"
