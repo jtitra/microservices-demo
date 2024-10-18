@@ -3,6 +3,11 @@
 terraform {
 
   required_providers {
+    harness = {
+      source  = "harness/harness"
+      version = "~> 0.3"
+    }
+
     google = {
       source  = "hashicorp/google"
       version = "~> 6"

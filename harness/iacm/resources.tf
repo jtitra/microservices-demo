@@ -18,6 +18,12 @@ resource "google_container_cluster" "gke_cluster" {
   network    = "sandbox-testing"
   subnetwork = "sandbox-testing"
 
+  master_auth {
+    client_certificate_config {
+      issue_client_certificate = true
+    }
+  }
+
   workload_identity_config {
     workload_pool = "${var.gcp_project_id}.svc.id.goog"
   }
@@ -66,4 +72,43 @@ resource "google_container_node_pool" "gke_node_pool" {
     create = "60m"
     update = "60m"
   }
+}
+
+// Harness K8s Connector
+resource "harness_platform_connector_kubernetes" "gke_k8s" {
+  identifier = "gke_${local.gke_cluster_name}"
+  name       = "GKE - ${local.gke_cluster_name}"
+  org_id     = var.org_id
+  project_id = var.project_id
+
+  client_key_cert {
+    master_url           = google_container_cluster.gke_cluster.endpoint
+    client_cert_ref      = harness_platform_secret_text.client_cert.id
+    client_key_ref       = harness_platform_secret_text.client_key.id
+    client_key_algorithm = "RSA"
+  }
+
+}
+
+// Harness Secrets
+resource "harness_platform_secret_text" "client_cert" {
+  identifier = "gke_client_cert_${local.gke_cluster_name}"
+  name       = "GKE Client Cert - ${local.gke_cluster_name}"
+  org_id     = var.org_id
+  project_id = var.project_id
+
+  secret_manager_identifier = "account.harnessSecretManager"
+  value_type                = "Inline"
+  value                     = google_container_cluster.gke_cluster.master_auth.0.client_certificate
+}
+
+resource "harness_platform_secret_text" "client_key" {
+  identifier = "gke_client_key_${local.gke_cluster_name}"
+  name       = "GKE Client Key - ${local.gke_cluster_name}"
+  org_id     = var.org_id
+  project_id = var.project_id
+
+  secret_manager_identifier = "account.harnessSecretManager"
+  value_type                = "Inline"
+  value                     = google_container_cluster.gke_cluster.master_auth.0.client_key
 }
