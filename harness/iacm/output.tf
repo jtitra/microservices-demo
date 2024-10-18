@@ -18,3 +18,8 @@ output "gke_namespace" {
   value       = var.namespace
   description = "GKE namespace used by the CD Infrastructure"
 }
+
+output "k8s_connector_id" {
+  value       = harness_platform_connector_kubernetes.gke_k8s.id
+  description = "Harness GKE Connector Id used by the CD Infrastructure"
+}
