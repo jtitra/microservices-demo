@@ -3,6 +3,7 @@
 //    GKE Cluster, GKE Node Pool
 locals {
   gke_cluster_name = "temp-titra-test"
+  gke_cluster_id   = replace(local.gke_cluster_name, "-", "_")
   resource_purpose = "testing"
 }
 
@@ -76,7 +77,7 @@ resource "google_container_node_pool" "gke_node_pool" {
 
 // Harness K8s Connector
 resource "harness_platform_connector_kubernetes" "gke_k8s" {
-  identifier = "gke_${local.gke_cluster_name}"
+  identifier = "gke_${local.gke_cluster_id}"
   name       = "GKE - ${local.gke_cluster_name}"
   org_id     = var.org_id
   project_id = var.project_id
@@ -92,7 +93,7 @@ resource "harness_platform_connector_kubernetes" "gke_k8s" {
 
 // Harness Secrets
 resource "harness_platform_secret_text" "client_cert" {
-  identifier = "gke_client_cert_${local.gke_cluster_name}"
+  identifier = "gke_client_cert_${local.gke_cluster_id}"
   name       = "GKE Client Cert - ${local.gke_cluster_name}"
   org_id     = var.org_id
   project_id = var.project_id
@@ -103,7 +104,7 @@ resource "harness_platform_secret_text" "client_cert" {
 }
 
 resource "harness_platform_secret_text" "client_key" {
-  identifier = "gke_client_key_${local.gke_cluster_name}"
+  identifier = "gke_client_key_${local.gke_cluster_id}"
   name       = "GKE Client Key - ${local.gke_cluster_name}"
   org_id     = var.org_id
   project_id = var.project_id
