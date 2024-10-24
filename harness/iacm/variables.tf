@@ -34,6 +34,10 @@ variable "gcp_zone" {
 }
 
 // GKE Cluster & Node Pool
+variable "gke_cluster_name" {
+  type = string
+}
+
 variable "gke_min_node_count" {
   type = string
 }
@@ -47,6 +51,10 @@ variable "gke_machine_type" {
 }
 
 variable "resource_owner" {
+  type = string
+}
+
+variable "resource_purpose" {
   type = string
 }
 

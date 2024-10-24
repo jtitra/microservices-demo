@@ -2,14 +2,12 @@
 // Provisions the following resources: 
 //    GKE Cluster, GKE Node Pool
 locals {
-  gke_cluster_name = "temp-titra-test"
-  gke_cluster_id   = replace(local.gke_cluster_name, "-", "_")
-  resource_purpose = "testing"
+  gke_cluster_id = replace(var.gke_cluster_name, "-", "_")
 }
 
 // GKE Cluster
 resource "google_container_cluster" "gke_cluster" {
-  name     = local.gke_cluster_name
+  name     = var.gke_cluster_name
   location = var.gcp_zone
 
   deletion_protection      = false
@@ -30,8 +28,8 @@ resource "google_container_cluster" "gke_cluster" {
   }
 
   resource_labels = {
-    env     = local.gke_cluster_name
-    purpose = local.resource_purpose
+    env     = var.gke_cluster_name
+    purpose = var.resource_purpose
     owner   = var.resource_owner
   }
 
@@ -78,7 +76,7 @@ resource "google_container_node_pool" "gke_node_pool" {
 // Harness K8s Connector
 resource "harness_platform_connector_kubernetes" "gke_k8s" {
   identifier = "gke_${local.gke_cluster_id}"
-  name       = "GKE - ${local.gke_cluster_name}"
+  name       = "GKE - ${var.gke_cluster_name}"
   org_id     = var.org_id
   project_id = var.project_id
 
@@ -89,27 +87,32 @@ resource "harness_platform_connector_kubernetes" "gke_k8s" {
     client_key_algorithm = "RSA"
   }
 
+  tags = ["owner:${var.resource_owner}", "iacmManaged:true"]
 }
 
 // Harness Secrets
 resource "harness_platform_secret_text" "client_cert" {
   identifier = "gke_client_cert_${local.gke_cluster_id}"
-  name       = "GKE Client Cert - ${local.gke_cluster_name}"
+  name       = "GKE Client Cert - ${var.gke_cluster_name}"
   org_id     = var.org_id
   project_id = var.project_id
 
   secret_manager_identifier = "account.harnessSecretManager"
   value_type                = "Inline"
   value                     = google_container_cluster.gke_cluster.master_auth.0.client_certificate
+
+  tags = ["owner:${var.resource_owner}", "iacmManaged:true"]
 }
 
 resource "harness_platform_secret_text" "client_key" {
   identifier = "gke_client_key_${local.gke_cluster_id}"
-  name       = "GKE Client Key - ${local.gke_cluster_name}"
+  name       = "GKE Client Key - ${var.gke_cluster_name}"
   org_id     = var.org_id
   project_id = var.project_id
 
   secret_manager_identifier = "account.harnessSecretManager"
   value_type                = "Inline"
   value                     = google_container_cluster.gke_cluster.master_auth.0.client_key
+
+  tags = ["owner:${var.resource_owner}", "iacmManaged:true"]
 }
