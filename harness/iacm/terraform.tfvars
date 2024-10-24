@@ -1,7 +1,7 @@
 // Harness Platform
 account_id = "EeRjnXTnS4GrLG5VNNJZUw"
-org_id     = "sandbox"
-project_id = "Titra"
+org_id     = "<+org.identifier>"
+project_id = "<+project.identifier>"
 
 // GKE Cluster & Node Pool
 gke_min_node_count = 1
