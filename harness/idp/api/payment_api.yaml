@@ -13,6 +13,49 @@ spec:
   lifecycle: production
   owner: team-payment
   type: openapi
-  definition:
-    type: file
-    file: ./spec/payment_openapi.yaml
+  definition: |
+    openapi: 3.0.3
+    info:
+      title: Payment Service
+      description: API for processing payments.
+      version: 1.0.0
+    servers:
+      - url: http://paymentservice.default.svc.cluster.local
+        description: Payment Service
+    paths:
+      /payment:
+        post:
+          summary: Process a payment
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    amount:
+                      type: number
+                      example: 100.0
+                    currency:
+                      type: string
+                      example: USD
+                    card_number:
+                      type: string
+                      example: 4111111111111111
+                    card_expiry:
+                      type: string
+                      example: 12/25
+                    card_cvv:
+                      type: string
+                      example: 123
+          responses:
+            200:
+              description: Payment processed successfully
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      transaction_id:
+                        type: string
+                        example: txn123

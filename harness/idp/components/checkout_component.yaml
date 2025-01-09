@@ -6,19 +6,32 @@ metadata:
   tags:
     - microservices
     - checkout
-    - Go
+    - go
     - boutique
   annotations:
     github.com/project-slug: GoogleCloudPlatform/microservices-demo
+    harness.io/project-url: https://app.harness.io/ng/account/{{ account_id }}/all/orgs/{{ org_id }}/projects/{{ project_id }}
+    # For Harness CI/CD plugin
+    harness.io/pipelines: |
+      Build and Deploy: https://app.harness.io/ng/account/{{ account_id }}/all/orgs/{{ org_id }}/projects/{{ project_id }}/pipelines/Online_Boutique_Build_and_Deploy/pipeline-studio?storeType=INLINE
+    # TechDocs plugin
+    backstage.io/techdocs-ref: dir:../
+    # Jira plugin
+    #jira/project-key: XYZ
 spec:
   type: service
   lifecycle: production
   owner: team-checkout
   system: online-boutique
   dependsOn:
-    - component: boutique-cart
-    - component: boutique-payment
-    - component: boutique-shipping
-    - component: boutique-email
+    - component:boutique-cart
+    - component:boutique-payment
+    - component:boutique-shipping
+    - component:boutique-email
   providesApis:
-    - boutique-checkout
+    - boutique-checkout-api
+  consumesApis:
+    - boutique-cart-api
+    - boutique-payment-api
+    - boutique-shipping-api
+    - boutique-email-api

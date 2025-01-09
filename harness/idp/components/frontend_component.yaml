@@ -10,20 +10,34 @@ metadata:
   tags:
     - microservices
     - frontend
-    - TypeScript
+    - typescript
     - boutique
   annotations:
     github.com/project-slug: GoogleCloudPlatform/microservices-demo
+    harness.io/project-url: https://app.harness.io/ng/account/{{ account_id }}/all/orgs/{{ org_id }}/projects/{{ project_id }}
+    # For Harness CI/CD plugin
+    harness.io/pipelines: |
+      Build and Deploy: https://app.harness.io/ng/account/{{ account_id }}/all/orgs/{{ org_id }}/projects/{{ project_id }}/pipelines/Online_Boutique_Build_and_Deploy/pipeline-studio?storeType=INLINE
+    # TechDocs plugin
+    backstage.io/techdocs-ref: dir:../
+    # Jira plugin
+    #jira/project-key: XYZ
 spec:
   type: service
   lifecycle: production
   owner: team-frontend
   system: online-boutique
   dependsOn:
-    - component: boutique-cart
-    - component: boutique-product-catalog
-    - component: boutique-recommendation
-    - component: boutique-shipping
-    - component: boutique-payment
+    - component:boutique-cart
+    - component:boutique-product-catalog
+    - component:boutique-recommendation
+    - component:boutique-shipping
+    - component:boutique-payment
   providesApis:
-    - boutique-frontend
+    - boutique-frontend-api
+  consumesApis:
+    - boutique-cart-api
+    - boutique-product-catalog-api
+    - boutique-recommendation-api
+    - boutique-shipping-api
+    - boutique-payment-api

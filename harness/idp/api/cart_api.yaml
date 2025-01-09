@@ -13,6 +13,64 @@ spec:
   lifecycle: production
   owner: team-cart
   type: openapi
-  definition:
-    type: file
-    file: ./spec/cart_openapi.yaml
+  definition: |
+    openapi: 3.0.3
+    info:
+      title: Cart Service
+      description: API for managing shopping cart items.
+      version: 1.0.0
+    servers:
+      - url: http://cartservice.default.svc.cluster.local
+        description: Cart Service
+    paths:
+      /cart:
+        get:
+          summary: Get the cart for a user
+          parameters:
+            - name: user_id
+              in: query
+              required: true
+              schema:
+                type: string
+                example: user123
+          responses:
+            200:
+              description: User cart details
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            product_id:
+                              type: string
+                              example: prod123
+                            quantity:
+                              type: integer
+                              example: 2
+      /cart:
+        post:
+          summary: Add an item to the cart
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    user_id:
+                      type: string
+                      example: user123
+                    product_id:
+                      type: string
+                      example: prod123
+                    quantity:
+                      type: integer
+                      example: 1
+          responses:
+            200:
+              description: Item added to the cart

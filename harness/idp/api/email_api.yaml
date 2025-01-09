@@ -13,6 +13,71 @@ spec:
   lifecycle: production
   owner: team-email
   type: openapi
-  definition:
-    type: file
-    file: ./spec/email_openapi.yaml
+  definition: |
+    openapi: 3.0.3
+    info:
+      title: Email Service
+      description: API for sending order confirmation and other emails.
+      version: 1.0.0
+    servers:
+      - url: http://emailservice.default.svc.cluster.local
+        description: Email Service in Kubernetes
+    paths:
+      /send:
+        post:
+          summary: Send an email
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    to:
+                      type: string
+                      description: Recipient's email address
+                      example: user@example.com
+                    subject:
+                      type: string
+                      description: Email subject
+                      example: "Order Confirmation"
+                    body:
+                      type: string
+                      description: Email body content
+                      example: "Thank you for your order! Your order has been successfully placed."
+          responses:
+            200:
+              description: Email sent successfully
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        description: Confirmation status of email sending
+                        example: "sent"
+                      message_id:
+                        type: string
+                        description: Unique identifier for the email message
+                        example: "msg-12345"
+            400:
+              description: Bad request due to invalid input
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      error:
+                        type: string
+                        example: "Invalid email address"
+            500:
+              description: Server error while attempting to send the email
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      error:
+                        type: string
+                        example: "Email service is unavailable"

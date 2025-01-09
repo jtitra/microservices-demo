@@ -13,6 +13,77 @@ spec:
   lifecycle: production
   owner: team-currency
   type: openapi
-  definition:
-    type: file
-    file: ./spec/currency_openapi.yaml
+  definition: |
+    openapi: 3.0.3
+    info:
+      title: Currency Service
+      description: API for currency conversion and exchange rate management.
+      version: 1.0.0
+    servers:
+      - url: http://currencyservice.default.svc.cluster.local
+        description: Currency Service in Kubernetes
+    paths:
+      /convert:
+        get:
+          summary: Convert one currency to another
+          parameters:
+            - name: from
+              in: query
+              description: The source currency code (e.g., USD)
+              required: true
+              schema:
+                type: string
+                example: USD
+            - name: to
+              in: query
+              description: The target currency code (e.g., EUR)
+              required: true
+              schema:
+                type: string
+                example: EUR
+            - name: amount
+              in: query
+              description: The amount to convert
+              required: true
+              schema:
+                type: number
+                example: 100.00
+          responses:
+            200:
+              description: Conversion result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      from:
+                        type: string
+                        example: USD
+                      to:
+                        type: string
+                        example: EUR
+                      amount:
+                        type: number
+                        example: 100.00
+                      converted_amount:
+                        type: number
+                        example: 85.00
+      /rates:
+        get:
+          summary: Get exchange rates
+          responses:
+            200:
+              description: A list of exchange rates
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      rates:
+                        type: object
+                        additionalProperties:
+                          type: number
+                        example:
+                          USD: 1.0
+                          EUR: 0.85
+                          GBP: 0.75
