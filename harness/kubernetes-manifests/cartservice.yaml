@@ -92,6 +92,8 @@ metadata:
   name: redis-cart
   labels:
     app: redis-cart
+  annotations:
+    harness.io/direct-apply: true
 spec:
   selector:
     matchLabels:

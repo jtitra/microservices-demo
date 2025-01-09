@@ -3,6 +3,10 @@ kind: Component
 metadata:
   name: boutique-frontend
   description: The frontend service of the Online Boutique application.
+  links:
+    - url: http://34.139.102.202/
+      title: Online Boutique Website
+      icon: dashboard
   tags:
     - microservices
     - frontend
