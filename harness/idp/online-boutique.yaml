@@ -1,0 +1,7 @@
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: online-boutique
+  description: Online Boutique microservices system.
+spec:
+  owner: boutique-platform

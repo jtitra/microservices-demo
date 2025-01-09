@@ -1,0 +1,19 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: boutique-email
+  description: The email service for sending order confirmations.
+  tags:
+    - microservices
+    - email
+    - Python
+    - boutique
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+spec:
+  type: service
+  lifecycle: production
+  owner: team-email
+  system: online-boutique
+  providesApis:
+    - boutique-email

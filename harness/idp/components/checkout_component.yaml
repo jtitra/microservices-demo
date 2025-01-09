@@ -1,0 +1,24 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: boutique-checkout
+  description: The checkout service for processing orders.
+  tags:
+    - microservices
+    - checkout
+    - Go
+    - boutique
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+spec:
+  type: service
+  lifecycle: production
+  owner: team-checkout
+  system: online-boutique
+  dependsOn:
+    - component: boutique-cart
+    - component: boutique-payment
+    - component: boutique-shipping
+    - component: boutique-email
+  providesApis:
+    - boutique-checkout

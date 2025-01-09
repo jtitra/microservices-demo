@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+  description: API for processing orders during checkout.
+  name: boutique-checkout-api
+  tags:
+  - api
+  - checkout
+  - boutique
+spec:
+  lifecycle: production
+  owner: team-checkout
+  type: openapi
+  definition:
+    type: file
+    file: ./spec/checkout_openapi.yaml

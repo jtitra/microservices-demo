@@ -1,0 +1,17 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: boutique-redis
+  description: The Redis database used for caching by cart service.
+  tags:
+    - microservices
+    - database
+    - Redis
+    - boutique
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+spec:
+  type: database
+  lifecycle: production
+  owner: team-platform
+  system: online-boutique

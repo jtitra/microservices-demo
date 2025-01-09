@@ -1,0 +1,21 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: boutique-recommendation
+  description: The recommendation service for suggesting products.
+  tags:
+    - microservices
+    - recommendation
+    - Python
+    - boutique
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+spec:
+  type: service
+  lifecycle: production
+  owner: team-recommendation
+  system: online-boutique
+  dependsOn:
+    - component: product-catalog
+  providesApis:
+    - boutique-recommendation

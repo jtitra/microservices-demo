@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+  description: API for currency conversion and exchange rate management.
+  name: boutique-currency-api
+  tags:
+  - api
+  - currency
+  - boutique
+spec:
+  lifecycle: production
+  owner: team-currency
+  type: openapi
+  definition:
+    type: file
+    file: ./spec/currency_openapi.yaml

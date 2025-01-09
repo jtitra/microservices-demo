@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+  description: API for serving the frontend of the Online Boutique application.
+  name: boutique-frontend-api
+  tags:
+  - api
+  - frontend
+  - boutique
+spec:
+  lifecycle: production
+  owner: team-frontend
+  type: openapi
+  definition:
+    type: file
+    file: ./spec/frontend_openapi.yaml

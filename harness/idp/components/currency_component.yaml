@@ -1,0 +1,19 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: boutique-currency
+  description: The currency service for managing currency conversion.
+  tags:
+    - microservices
+    - currency
+    - Go
+    - boutique
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+spec:
+  type: service
+  lifecycle: production
+  owner: team-currency
+  system: online-boutique
+  providesApis:
+    - boutique-currency

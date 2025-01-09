@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+  description: API for managing product details in the Online Boutique application.
+  name: boutique-product-catalog-api
+  tags:
+  - api
+  - product-catalog
+  - boutique
+spec:
+  type: openapi
+  lifecycle: production
+  owner: team-product-catalog
+  definition:
+    type: file
+    file: ./spec/product_catalog_openapi.yaml

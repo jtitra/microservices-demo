@@ -1,0 +1,19 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: boutique-ad
+  description: The ad service for managing advertisements.
+  tags:
+    - microservices
+    - ad
+    - Java
+    - boutique
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ad
+  system: online-boutique
+  providesApis:
+    - boutique-ad

@@ -1,0 +1,21 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: boutique-cart
+  description: The cart service for managing shopping cart items.
+  tags:
+    - microservices
+    - cart
+    - C#
+    - boutique
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+spec:
+  type: service
+  lifecycle: production
+  owner: team-cart
+  system: online-boutique
+  dependsOn:
+    - component: boutique-redis
+  providesApis:
+    - boutique-cart

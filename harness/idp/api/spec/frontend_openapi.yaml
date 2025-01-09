@@ -1,0 +1,108 @@
+info:
+  description: API for serving the frontend of the Online Boutique application.
+  title: Frontend Service
+  version: 1.0.0
+openapi: 3.0.3
+paths:
+  /cart:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                product_id:
+                  example: product123
+                  type: string
+                quantity:
+                  example: 1
+                  type: integer
+              type: object
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    example: Product added successfully.
+                    type: string
+                type: object
+          description: Product added to the cart
+        '400':
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    example: Invalid product ID or quantity.
+                    type: string
+                type: object
+          description: Invalid product or quantity
+      summary: Add a product to the shopping cart
+  /health:
+    get:
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    example: healthy
+                    type: string
+                type: object
+          description: Service is healthy
+        '500':
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    example: unhealthy
+                    type: string
+                type: object
+          description: Service is unhealthy
+      summary: Health check for the frontend service
+  /products:
+    get:
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  properties:
+                    description:
+                      example: A comfortable shirt.
+                      type: string
+                    id:
+                      example: product123
+                      type: string
+                    image_url:
+                      example: http://example.com/shirt.png
+                      type: string
+                    name:
+                      example: Shirt
+                      type: string
+                    price:
+                      example: 29.99
+                      type: number
+                  type: object
+                type: array
+          description: List of products
+        '500':
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    example: Unable to fetch products.
+                    type: string
+                type: object
+          description: Failed to retrieve products
+      summary: Get the list of products
+servers:
+- description: Frontend Service in Kubernetes
+  url: http://frontend.default.svc.cluster.local

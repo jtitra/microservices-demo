@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+  description: API for managing shipping details.
+  name: boutique-shipping-api
+  tags:
+  - api
+  - shipping
+  - boutique
+spec:
+  lifecycle: production
+  owner: team-shipping
+  type: openapi
+  definition:
+    type: file
+    file: ./spec/shipping_openapi.yaml

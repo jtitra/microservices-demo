@@ -1,0 +1,25 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: boutique-frontend
+  description: The frontend service of the Online Boutique application.
+  tags:
+    - microservices
+    - frontend
+    - TypeScript
+    - boutique
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+spec:
+  type: service
+  lifecycle: production
+  owner: team-frontend
+  system: online-boutique
+  dependsOn:
+    - component: boutique-cart
+    - component: boutique-product-catalog
+    - component: boutique-recommendation
+    - component: boutique-shipping
+    - component: boutique-payment
+  providesApis:
+    - boutique-frontend

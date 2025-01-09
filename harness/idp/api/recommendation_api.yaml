@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+  description: API for suggesting products.
+  name: boutique-recommendation-api
+  tags:
+  - api
+  - recommendation
+  - boutique
+spec:
+  lifecycle: production
+  owner: team-recommendation
+  type: openapi
+  definition:
+    type: file
+    file: ./spec/recommendation_openapi.yaml

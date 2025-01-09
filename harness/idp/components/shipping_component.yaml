@@ -1,0 +1,19 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: boutique-shipping
+  description: The shipping service for managing shipping information.
+  tags:
+    - microservices
+    - shipping
+    - Go
+    - boutique
+  annotations:
+    github.com/project-slug: GoogleCloudPlatform/microservices-demo
+spec:
+  type: service
+  lifecycle: production
+  owner: team-shipping
+  system: online-boutique
+  providesApis:
+    - boutique-shipping
