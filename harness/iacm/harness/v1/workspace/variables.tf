@@ -46,6 +46,10 @@ variable "workspace_repository_path" {
   type = string
 }
 
+variable "workspace_repository_connector" {
+  type = string
+}
+
 variable "workspace_provider_connector" {
   type = string
 }

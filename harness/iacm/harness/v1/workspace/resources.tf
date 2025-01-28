@@ -15,7 +15,7 @@ resource "harness_platform_workspace" "se_workspace" {
   repository_path         = var.workspace_repository_path
   cost_estimation_enabled = true
   provider_connector      = var.workspace_provider_connector
-  repository_connector    = ""
+  repository_connector    = var.workspace_repository_connector
 
   terraform_variable {
     key        = "bucket_name"
