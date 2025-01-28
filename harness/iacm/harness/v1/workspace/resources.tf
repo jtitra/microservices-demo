@@ -27,10 +27,14 @@ resource "harness_platform_workspace" "se_workspace" {
     }
   }
 
-  terraform_variable_file {
-    repository           = var.tf_var_file.name
-    repository_branch    = var.tf_var_file.branch
-    repository_path      = var.tf_var_file.path
-    repository_connector = var.tf_var_file.conn
+  dynamic "terraform_variable_file" {
+    for_each = var.tf_var_file == null ? [] : [var.tf_var_file]
+
+    content {
+      repository           = terraform_variable_file.value.name
+      repository_branch    = terraform_variable_file.value.branch
+      repository_path      = terraform_variable_file.value.path
+      repository_connector = terraform_variable_file.value.conn
+    }
   }
 }

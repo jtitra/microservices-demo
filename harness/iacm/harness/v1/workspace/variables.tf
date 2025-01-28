@@ -61,6 +61,7 @@ variable "tf_var_file" {
     branch = string
     path   = string
   })
+  default = null
 }
 
 variable "tf_vars" {
