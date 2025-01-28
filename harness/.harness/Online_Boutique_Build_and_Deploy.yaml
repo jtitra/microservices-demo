@@ -1,0 +1,503 @@
+pipeline:
+  name: Online Boutique - Build and Deploy
+  identifier: Online_Boutique_Build_and_Deploy
+  projectIdentifier: {{ project_id }}
+  orgIdentifier: {{ org_id }}
+  tags: {}
+  stages:
+    - stage:
+        name: Build
+        identifier: Build
+        description: ""
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Update MainGo
+                  identifier: Update_MainGo
+                  spec:
+                    shell: Python
+                    command: |-
+                      """
+                      This script updates the main.go file by inserting lines for Prometheus metrics.
+                      """
+                      # Global variables
+                      FILE_PATH = "src/frontend/main.go"
+                      REGISTER_METRICS_LINE = "    SetupMetrics(r)  // Setup Prometheus middleware and metrics endpoint"
+                      TARGET_LINE = "var handler http.Handler = r"
+
+                      def insert_line_before(file_path, target_line, new_line):
+                          """
+                          Insert a line before a specific line in a file.
+                          
+                          Args:
+                              file_path (str): The path to the file to be modified.
+                              target_line (str): The line before which the new line will be inserted.
+                              new_line (str): The new line to insert.
+                          """
+                          with open(file_path, "r", encoding="utf-8") as file:
+                              lines = file.readlines()
+
+                          for index, line in enumerate(lines):
+                              if target_line in line:
+                                  lines.insert(index, new_line + "\n")
+                                  break
+
+                          with open(file_path, "w", encoding="utf-8") as file:
+                              file.writelines(lines)
+
+                      def main():
+                          """
+                          Main function to update the main.go file.
+                          """
+                          # Inserting SetupMetrics(r)
+                          insert_line_before(FILE_PATH, TARGET_LINE, REGISTER_METRICS_LINE)
+
+                          print(f"Updated {FILE_PATH} successfully.")
+
+                      if __name__ == "__main__":
+                          main()
+              - step:
+                  type: Run
+                  name: Get Latest Tag
+                  identifier: Get_Latest_Tag
+                  spec:
+                    shell: Bash
+                    command: |-
+                      #!/bin/bash
+                      PIPELINE_SEQUENCE_ID=<+pipeline.sequenceId>
+
+                      # URL of the Google Container Registry API for listing tags
+                      GCR_API_URL="https://gcr.io/v2/google-samples/microservices-demo/frontend/tags/list"
+
+                      # Fetch the list of tags
+                      TAGS=$(curl -s $GCR_API_URL | jq -r '.tags[]')
+
+                      # Sort the tags to get the latest one
+                      LATEST_TAG=$(echo "$TAGS" | sort -V | tail -n 1)
+
+                      # Trim the 'v' from the tag
+                      TRIMMED_TAG=$(echo "$LATEST_TAG" | sed 's/^v//')
+
+                      echo "The latest tag for frontend is: $TRIMMED_TAG"
+
+                      # Add the pipelne sequenceId suffix
+                      FINAL_TAG="${TRIMMED_TAG}.${PIPELINE_SEQUENCE_ID}"
+
+                      echo "The build tag is: $FINAL_TAG"
+
+                      export finalTag=$FINAL_TAG
+                    outputVariables:
+                      - name: finalTag
+                        type: String
+                        value: finalTag
+              - stepGroup:
+                  name: Customize Frontend
+                  identifier: Customize_Frontend
+                  steps:
+                    - step:
+                        type: Run
+                        name: Enable Prometheus Metrics
+                        identifier: Enable_Prometheus_Metrics
+                        spec:
+                          shell: Bash
+                          command: |-
+                            #!/bin/bash
+
+                            cd src/frontend/
+
+                            # Add prometheus dependencies
+                            go get github.com/prometheus/client_golang/prometheus
+                            go get github.com/prometheus/client_golang/prometheus/promhttp
+
+                            # Create metrics.go File
+                            cat <<EoF > metrics.go
+                            package main
+
+                            import (
+                                "fmt"
+                                "github.com/gorilla/mux"
+                                "github.com/prometheus/client_golang/prometheus"
+                                "github.com/prometheus/client_golang/prometheus/promhttp"
+                                "html/template"
+                                "net/http"
+                                "strconv"
+                                "time"
+                            )
+
+                            var serviceVersion string
+                            var overviewTemplate *template.Template
+
+                            // create a new counter vector
+                            var getCallCounter = prometheus.NewCounterVec(
+                                prometheus.CounterOpts{
+                                    Name: "http_requests_total", // metric name
+                                    Help: "Number of get requests.",
+                                },
+                                []string{"status"}, // labels
+                            )
+
+                            var buckets = []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}
+                            var responseTimeHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+                                Name:      "http_server_request_duration_seconds",
+                                Help:      "Histogram of response time for handler in seconds",
+                                Buckets:   buckets,
+                            }, []string{"route", "method", "status_code"})
+
+                            type Overview struct {
+                                Version string
+                            }
+
+                            // create a handler struct
+                            type HTTPHandler struct{}
+
+                            type statusRecorder struct {
+                                http.ResponseWriter
+                                statusCode int
+                            }
+
+                            func (rec *statusRecorder) WriteHeader(statusCode int) {
+                                rec.statusCode = statusCode
+                                rec.ResponseWriter.WriteHeader(statusCode)
+                            }
+
+                            func (rec *statusRecorder) Write(b []byte) (int, error) {
+                                return rec.ResponseWriter.Write(b)
+                            }
+
+                            func init() {
+                                // Register the metrics with Prometheus's default registry.
+                                prometheus.MustRegister(getCallCounter)
+                                prometheus.MustRegister(responseTimeHistogram)
+                            }
+
+                            func getRoutePattern(r *http.Request) string {
+                                reqContext := mux.CurrentRoute(r)
+                                if pattern, _ := reqContext.GetPathTemplate(); pattern != "" {
+                                    return pattern
+                                }
+
+                                fmt.Println(reqContext.GetPathRegexp())
+
+                                return "undefined"
+                            }
+
+                            // implement `ServeHTTP` method on `HTTPHandler` struct
+                            func (h HTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+                                var status string
+                                defer func() {
+                                    // increment the counter on defer func
+                                    getCallCounter.WithLabelValues(status).Inc()
+                                }()
+
+                                overviewData := Overview{
+                                    Version: serviceVersion,
+                                }
+                                overviewTemplate = template.Must(template.ParseFiles("./templates/home.html"))
+                                err := overviewTemplate.Execute(res, overviewData)
+
+                                // Slow build
+                                if serviceVersion == "0.1.2" {
+                                    time.Sleep(2 * time.Second)
+                                }
+
+                                if err != nil {
+                                    status = "error"
+                                } else {
+                                    status = "success"
+                                }
+                            }
+
+                            func prometheusMiddleware(next http.Handler) http.Handler {
+                                return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+                                    start := time.Now()
+                                    rec := &statusRecorder{ResponseWriter: w, statusCode: http.StatusOK}
+
+                                    next.ServeHTTP(rec, r)
+
+                                    duration := time.Since(start)
+                                    statusCode := strconv.Itoa(rec.statusCode)
+                                    route := getRoutePattern(r)
+                                    fmt.Println(duration.Seconds())
+                                    responseTimeHistogram.WithLabelValues(route, r.Method, statusCode).Observe(duration.Seconds())
+                                })
+                            }
+
+                            // Function to register Prometheus middleware and metrics endpoint
+                            func SetupMetrics(r *mux.Router) {
+                                // Register the metrics endpoint
+                                r.Path("/metrics").Handler(promhttp.Handler())
+
+                                // Apply the Prometheus middleware
+                                r.Use(prometheusMiddleware)
+                            }
+                            EoF
+                    - parallel:
+                        - step:
+                            type: Run
+                            name: Update Favicon
+                            identifier: Update_Favicon
+                            spec:
+                              shell: Bash
+                              command: |-
+                                #!/bin/bash
+
+                                NEW_FAVICON="https://raw.githubusercontent.com/jtitra/field-workshops/main/se-workshop-ce/assets/images/favicon.ico"
+
+                                cd src/frontend/static/
+                                rm -f favicon.ico
+                                curl -o favicon.ico $NEW_FAVICON
+                        - step:
+                            type: Run
+                            name: Update Nav Logo
+                            identifier: Update_Nav_Logo
+                            spec:
+                              shell: Bash
+                              command: |-
+                                #!/bin/bash
+
+                                # Path to the SVG file
+                                SVG_PATH="src/frontend/static/icons/Hipster_NavLogo.svg"
+
+                                # Define the new SVG content
+                                cat <<EoF > $SVG_PATH
+                                <?xml version="1.0" encoding="utf-8"?>
+                                <svg viewBox="0 0 316.16 60" xmlns="http://www.w3.org/2000/svg">
+                                  <defs>
+                                    <style id="style1031">.cls-1{fill:#4cc8c6}.cls-2{fill:#fff}</style>
+                                  </defs>
+                                  <g id="g1073" transform="matrix(1, 0, 0, 1, 0, -0.036768000572919846)">
+                                    <g id="g1041" style="fill: rgb(254, 154, 155); fill-opacity: 1;" transform="matrix(1.035178, 0, 0, 1.035178, 0, 1)">
+                                      <path d="M 51.605 18.234 L 37.852 4.381 C 36.223 2.832 34.283 1.651 32.164 0.922 C 27.464 -0.651 22.789 0.576 19.001 4.381 L 5.214 18.234 C 3.675 19.871 2.502 21.824 1.776 23.957 C 0.206 28.684 1.429 33.388 5.214 37.193 L 18.985 51.045 C 20.61 52.596 22.549 53.774 24.668 54.504 C 25.952 54.94 27.297 55.166 28.652 55.172 C 31.955 55.172 35.118 53.768 37.83 51.045 L 51.594 37.193 C 53.136 35.554 54.31 33.603 55.038 31.47 C 56.602 26.741 55.381 22.044 51.594 18.234 L 51.605 18.234 Z M 29.468 8.401 C 30.508 8.736 31.467 9.287 32.282 10.019 L 36.35 14.118 L 28.415 22.094 L 20.481 14.112 L 24.573 9.991 C 25.669 8.893 27.217 7.726 29.479 8.394 L 29.468 8.401 Z M 9.221 26.641 C 9.556 25.593 10.106 24.628 10.837 23.81 L 14.905 19.717 L 22.839 27.699 L 14.9 35.681 L 10.808 31.559 C 9.71 30.462 8.558 28.905 9.215 26.629 L 9.221 26.641 Z M 27.352 47.009 C 26.31 46.677 25.351 46.124 24.537 45.391 L 20.481 41.342 L 28.415 33.354 L 36.35 41.337 L 32.259 45.458 C 31.161 46.556 29.62 47.723 27.352 47.054 L 27.352 47.009 Z M 47.61 28.808 C 47.276 29.854 46.727 30.818 46 31.639 L 41.932 35.681 L 33.998 27.699 L 41.932 19.717 L 46.023 23.833 C 47.12 24.931 48.273 26.488 47.616 28.763" fill="#00ABE4" style=""/>
+                                    </g>
+                                    <g id="g1071" style="fill:#570d2d;fill-opacity:1">
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1043" class="cls-2" d="M76.11,20.82c0-5.61,3-8.82,8.38-8.82s8.37,3.21,8.37,8.82V39.08c0,5.61-3,8.82-8.37,8.82s-8.38-3.21-8.38-8.82Zm5.52,18.61c0,2.5,1.1,3.46,2.86,3.46s2.85-1,2.85-3.46v-19c0-2.5-1.1-3.46-2.85-3.46s-2.86,1-2.86,3.46Z"/>
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1045" class="cls-2" d="M101.33,22.08V47.5h-5V12.4h6.92l5.66,21v-21h4.92V47.5H108.2Z"/>
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1047" class="cls-2" d="M117.82,12.4h5.52V42.48h9.08v5h-14.6Z"/>
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1049" class="cls-2" d="M134.82,12.4h5.52V47.5h-5.52Z"/>
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1051" class="cls-2" d="M149.26,22.08V47.5h-5V12.4h6.92l5.66,21v-21h4.91V47.5h-5.66Z"/>
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1053" class="cls-2" d="M171.27,27.19h7.57v5h-7.57V42.48h9.53v5H165.75V12.4H180.8v5h-9.53Z"/>
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1055" class="cls-2" d="M191.22,12.4c5.12,0,6.77,2.56,6.77,7.27v2.26c0,3.91-1.05,6.27-5,6.87,4.16.6,5.72,3.46,5.72,7.52v3.11c0,5-2.11,8.07-7.42,8.07H184.2V12.4Zm-1.35,16c4.86,0,7-1.16,7-6.27V19.72c0-4.11-1.25-6.27-5.67-6.27h-5.91v14.9Zm1.41,18.1c4.61,0,6.31-2.61,6.31-7V36.27c0-5.07-2.4-6.92-7.22-6.92h-5.06v17.1Z"/>
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1057" class="cls-2" d="M202.55,21c0-5.81,2.56-8.87,7.43-8.87s7.52,3.06,7.52,8.87V38.87c0,5.82-2.56,8.88-7.52,8.88s-7.43-3.06-7.43-8.88Zm1.11,17.91c0,5.16,2.15,7.82,6.32,7.82s6.41-2.66,6.41-7.82V21c0-5.17-2.2-7.83-6.41-7.83s-6.32,2.66-6.32,7.83Z"/>
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1059" class="cls-2" d="M222.51,38.87c0,4.22,1.5,7.88,6.17,7.88s6.16-3.66,6.16-7.88V12.4h1.06V38.82c0,4.82-1.91,8.93-7.22,8.93s-7.27-4.11-7.27-8.93V12.4h1.1Z"/>
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1061" class="cls-2" d="M246.63,47.5v-34H239v-1H255.4v1h-7.67V47.5Z"/>
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1063" class="cls-2" d="M259.71,12.4V47.5h-1.1V12.4Z"/>
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1065" class="cls-2" d="M278.66,21V38.87a10.14,10.14,0,0,1-1.9,6.47A3.33,3.33,0,0,0,280,47h.55v1H280a4.16,4.16,0,0,1-3.92-2,7,7,0,0,1-4.91,1.71c-5.36,0-7.47-4-7.47-8.88V21c0-4.91,2.11-8.87,7.47-8.87S278.66,16.11,278.66,21Zm-13.89,0v18c0,4.31,1.71,7.82,6.37,7.82s6.42-3.51,6.42-7.82V21c0-4.32-1.76-7.83-6.42-7.83S264.77,16.66,264.77,21Z"/>
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1067" class="cls-2" d="M285.43,38.87c0,4.22,1.5,7.88,6.17,7.88s6.16-3.66,6.16-7.88V12.4h1.06V38.82c0,4.82-1.91,8.93-7.22,8.93s-7.27-4.11-7.27-8.93V12.4h1.1Z"/>
+                                      <path style="fill-opacity: 1; fill: rgb(0, 82, 109);" id="path1069" class="cls-2" d="M314.21,29.2v1H303.88V46.45h12.28v1H302.78V12.4h13.38v1H303.88V29.2Z"/>
+                                    </g>
+                                  </g>
+                                </svg>
+                                EoF
+
+                                echo "Nav Logo Updated"
+              - stepGroup:
+                  name: SCA Scans
+                  identifier: SCA_Scans
+                  steps:
+                    - step:
+                        type: OsvScanner
+                        name: OSV Scanner
+                        identifier: OSV_Scanner
+                        spec:
+                          mode: orchestration
+                          config: default
+                          target:
+                            type: repository
+                            detection: auto
+                          advanced:
+                            log:
+                              level: info
+                        failureStrategies:
+                          - onFailure:
+                              errors:
+                                - AllErrors
+                              action:
+                                type: Ignore
+              - step:
+                  type: BuildAndPushGAR
+                  name: Build And Push Image
+                  identifier: Build_And_Push_Image
+                  spec:
+                    connectorRef: {{ gar_connector_id }}
+                    host: us-docker.pkg.dev
+                    projectID: seworkshop/seworkshop
+                    imageName: frontend
+                    tags:
+                      - <+stage.spec.execution.steps.Get_Latest_Tag.output.outputVariables.finalTag>
+                    caching: true
+                    dockerfile: src/frontend/Dockerfile
+                    context: src/frontend/
+              - stepGroup:
+                  name: Container Scans
+                  identifier: Container_Scans
+                  steps:
+                    - parallel:
+                        - step:
+                            type: Background
+                            name: dind
+                            identifier: dind
+                            spec:
+                              connectorRef: account.harnessImage
+                              image: docker:dind
+                              shell: Sh
+                        - step:
+                            type: AquaTrivy
+                            name: Aqua Trivy
+                            identifier: Aqua_Trivy
+                            spec:
+                              mode: orchestration
+                              config: default
+                              target:
+                                type: container
+                                detection: auto
+                              advanced:
+                                log:
+                                  level: info
+                              privileged: true
+                              image:
+                                type: docker_v2
+                                tag: <+pipeline.stages.Build.spec.execution.steps.Get_Latest_Tag.output.outputVariables.finalTag>
+                                name: seworkshop/seworkshop/frontend
+                                domain: us-docker.pkg.dev
+                              sbom:
+                                format: spdx-json
+                            failureStrategies:
+                              - onFailure:
+                                  errors:
+                                    - AllErrors
+                                  action:
+                                    type: Ignore
+          caching:
+            enabled: false
+            paths:
+              - src/frontend
+            key: ""
+          sharedPaths:
+            - /shared/scan_results
+            - /var/run
+        variables:
+          - name: PLUGIN_DRY_RUN
+            type: String
+            description: ""
+            required: false
+            value: "false"
+    - stage:
+        name: Deploy
+        identifier: Deploy
+        description: ""
+        type: Deployment
+        spec:
+          deploymentType: Kubernetes
+          services:
+            values:
+              - serviceRef: Boutique_Frontend
+                serviceInputs:
+                  serviceDefinition:
+                    type: Kubernetes
+                    spec:
+                      artifacts:
+                        primary:
+                          primaryArtifactRef: <+input>
+                          sources: <+input>
+              - serviceRef: Boutique_Ad
+              - serviceRef: Boutique_Cart
+              - serviceRef: Boutique_Checkout
+              - serviceRef: Boutique_Currency
+              - serviceRef: Boutique_Email
+              - serviceRef: Boutique_Payment
+              - serviceRef: Boutique_Recommendation
+              - serviceRef: Boutique_Shipping
+              - serviceRef: Boutique_Product_Catalog
+            metadata:
+              parallel: true
+          environment:
+            environmentRef: dev
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: boutique_dev
+          execution:
+            steps:
+              - stepGroup:
+                  name: Canary Deployment
+                  identifier: canaryDeployment
+                  steps:
+                    - step:
+                        name: Canary Deployment
+                        identifier: canaryDeployment
+                        type: K8sCanaryDeploy
+                        timeout: 10m
+                        spec:
+                          instanceSelection:
+                            type: Count
+                            spec:
+                              count: 1
+                          skipDryRun: false
+                    - step:
+                        type: ShellScript
+                        name: Validate Deployment
+                        identifier: Validate_Deployment
+                        spec:
+                          shell: Bash
+                          executionTarget: {}
+                          source:
+                            type: Inline
+                            spec:
+                              script: echo "Success"
+                          environmentVariables: []
+                          outputVariables: []
+                        timeout: 10m
+                    - step:
+                        name: Canary Delete
+                        identifier: canaryDelete
+                        type: K8sCanaryDelete
+                        timeout: 10m
+                        spec: {}
+              - stepGroup:
+                  name: Primary Deployment
+                  identifier: primaryDeployment
+                  steps:
+                    - step:
+                        name: Rolling Deployment
+                        identifier: rollingDeployment
+                        type: K8sRollingDeploy
+                        timeout: 10m
+                        spec:
+                          skipDryRun: false
+            rollbackSteps:
+              - step:
+                  name: Canary Delete
+                  identifier: rollbackCanaryDelete
+                  type: K8sCanaryDelete
+                  timeout: 10m
+                  spec: {}
+              - step:
+                  name: Rolling Rollback
+                  identifier: rollingRollback
+                  type: K8sRollingRollback
+                  timeout: 10m
+                  spec: {}
+        tags: {}
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: StageRollback
+  allowStageExecutions: false
+  properties:
+    ci:
+      codebase:
+        connectorRef: {{ github_connector_id }}
+        repoName: jtitra/microservices-demo
+        build: <+input>
+        sparseCheckout: []
