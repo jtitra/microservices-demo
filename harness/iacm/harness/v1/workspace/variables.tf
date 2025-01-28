@@ -54,10 +54,19 @@ variable "workspace_provider_connector" {
   type = string
 }
 
-variable "bucket_name" {
-  type = string
+variable "tf_var_file" {
+  type = object({
+    conn   = string
+    name   = string
+    branch = string
+    path   = string
+  })
 }
 
-variable "bucket_owner" {
-  type = string
+variable "tf_vars" {
+  type = list(object({
+    key        = string
+    value      = string
+    value_type = string
+  }))
 }

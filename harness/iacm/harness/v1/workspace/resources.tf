@@ -17,14 +17,20 @@ resource "harness_platform_workspace" "se_workspace" {
   provider_connector      = var.workspace_provider_connector
   repository_connector    = var.workspace_repository_connector
 
-  terraform_variable {
-    key        = "bucket_name"
-    value      = var.bucket_name
-    value_type = "string"
+  dynamic "terraform_variable" {
+    for_each = var.tf_vars
+
+    content {
+      key        = terraform_variable.value.key
+      value      = terraform_variable.value.value
+      value_type = terraform_variable.value.value_type
+    }
   }
-  terraform_variable {
-    key        = "bucket_owner"
-    value      = var.bucket_owner
-    value_type = "string"
+
+  terraform_variable_file {
+    repository           = var.tf_var_file.name
+    repository_branch    = var.tf_var_file.branch
+    repository_path      = var.tf_var_file.path
+    repository_connector = var.tf_var_file.conn
   }
 }
