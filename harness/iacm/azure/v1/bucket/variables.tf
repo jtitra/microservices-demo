@@ -1,6 +1,9 @@
 //Define Valid Variables
 
 // Azure Environment
+variable "az_subscription_id" {
+  type = string
+}
 
 // Blob Storage
 variable "bucket_name" {
