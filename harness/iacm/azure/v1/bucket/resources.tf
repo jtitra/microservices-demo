@@ -5,7 +5,7 @@
 // Blob Storage
 resource "azurerm_storage_blob" "se_bucket" {
   name                   = var.bucket_name
-  storage_account_name   = "demo"
+  storage_account_name   = "harnessidpdemo"
   storage_container_name = "demo"
   type                   = "Block"
 
